@@ -1,0 +1,35 @@
+@model List<Assignment1_EventSignup.Models.Event>
+
+@{
+    ViewData["Title"] = "Event Manager";
+}
+
+<h1>Event Manager</h1>
+<a asp-controller="Events" asp-action="Create" class="btn btn-primary mb-3">Create New Event</a>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var ev in Model)
+        {
+            <tr>
+                <td>@ev.Title</td>
+                <td>@ev.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@ev.Location</td>
+                <td>
+                    <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id">Details</a> |
+                    <a asp-controller="Events" asp-action="Edit" asp-route-id="@ev.Id">Edit</a> |
+                    <a asp-controller="Events" asp-action="Delete" asp-route-id="@ev.Id">Delete</a> |
+                    <a asp-controller="Attendees" asp-action="Index" asp-route-eventId="@ev.Id">Attendees</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,3 +1,7 @@
+using Assignment1_EventSignup.Data;
+using Assignment1_EventSignup.Services;
+using Microsoft.EntityFrameworkCore;
+
 namespace Assignment1_EventSignup
 {
     public class Program
@@ -9,7 +13,21 @@ namespace Assignment1_EventSignup
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            // EF Core / Azure SQL Database
+            builder.Services.AddDbContext<EventManagerContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            // Azure Blob Storage
+            builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+
             var app = builder.Build();
+
+            // Ensure database exists and is seeded.
+            using (var scope = app.Services.CreateScope())
+            {
+                var context = scope.ServiceProvider.GetRequiredService<EventManagerContext>();
+                DbInitializer.Initialize(context);
+            }
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -28,7 +46,7 @@ namespace Assignment1_EventSignup
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+                pattern: "{controller=Events}/{action=Index}/{id?}");
 
             app.Run();
         }

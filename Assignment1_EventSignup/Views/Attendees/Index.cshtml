@@ -1,0 +1,34 @@
+@model List<Assignment1_EventSignup.Models.Attendee>
+
+@{
+    ViewData["Title"] = "Manage Attendees - " + ViewData["EventName"];
+    var eventId = ViewData["EventId"];
+}
+
+<h1>Manage Attendees - @ViewData["EventName"]</h1>
+
+<a asp-controller="Attendees" asp-action="Create" asp-route-eventId="@eventId" class="btn btn-primary mb-3">Add Attendee</a>
+<a asp-controller="Events" asp-action="Details" asp-route-id="@eventId" class="btn btn-link mb-3">Back to Event</a>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var a in Model)
+        {
+            <tr>
+                <td>@a.Name</td>
+                <td>@a.Email</td>
+                <td>
+                    <a asp-controller="Attendees" asp-action="Edit" asp-route-eventId="@eventId" asp-route-id="@a.Id">Edit</a> |
+                    <a asp-controller="Attendees" asp-action="Delete" asp-route-eventId="@eventId" asp-route-id="@a.Id">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
