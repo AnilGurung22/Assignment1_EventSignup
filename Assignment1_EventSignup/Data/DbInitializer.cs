@@ -1,4 +1,5 @@
 using Assignment1_EventSignup.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Assignment1_EventSignup.Data
 {
@@ -7,7 +8,7 @@ namespace Assignment1_EventSignup.Data
         // Ensures the database exists and seeds initial data if empty.
         public static void Initialize(EventManagerContext context)
         {
-            context.Database.EnsureCreated();
+            context.Database.Migrate();
 
             // Already seeded
             if (context.Events.Any())

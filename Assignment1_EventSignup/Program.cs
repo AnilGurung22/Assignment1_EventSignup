@@ -15,8 +15,12 @@ namespace Assignment1_EventSignup
 
             // EF Core / Azure SQL Database
             builder.Services.AddDbContext<EventManagerContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+                options.UseSqlServer(
+            builder.Configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions => sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                   maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null)));
             // Azure Blob Storage
             builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
