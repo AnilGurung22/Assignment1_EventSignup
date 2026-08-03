@@ -1,11 +1,12 @@
 using Assignment1_EventSignup.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assignment1_EventSignup.Data
 {
     public static class DbInitializer
     {
-        // Ensures the database exists and seeds initial data if empty.
+        // Ensures the database exists and seeds initial event data if empty.
         public static void Initialize(EventManagerContext context)
         {
             context.Database.Migrate();
@@ -61,6 +62,53 @@ namespace Assignment1_EventSignup.Data
 
             context.Events.AddRange(events);
             context.SaveChanges();
+        }
+
+        // Seeds Organizer/Attendee roles and two users. Idempotent - safe to run every startup.
+        public static async Task SeedRolesAndUsers(IServiceProvider serviceProvider)
+        {
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+            string[] roles = { "Organizer", "Attendee" };
+
+            // Create roles if they don't exist
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+
+            // Seed an Organizer user
+            await CreateUser(userManager, "organizer@example.com", "Organizer123!", "Organizer");
+
+            // Seed an Attendee user
+            await CreateUser(userManager, "attendee@example.com", "Attendee123!", "Attendee");
+        }
+
+        private static async Task CreateUser(
+            UserManager<IdentityUser> userManager,
+            string email,
+            string password,
+            string role)
+        {
+            if (await userManager.FindByEmailAsync(email) == null)
+            {
+                var user = new IdentityUser
+                {
+                    UserName = email,
+                    Email = email,
+                    EmailConfirmed = true
+                };
+
+                var result = await userManager.CreateAsync(user, password);
+                if (result.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, role);
+                }
+            }
         }
     }
 }

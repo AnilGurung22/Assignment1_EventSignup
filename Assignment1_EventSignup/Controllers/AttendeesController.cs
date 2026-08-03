@@ -1,11 +1,14 @@
 using Assignment1_EventSignup.Data;
 using Assignment1_EventSignup.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assignment1_EventSignup.Controllers
 {
     // Attendees are always managed within the context of an Event.
+    // Organizer-only by default; Index is opened up below.
+    [Authorize(Roles = "Organizer")]
     [Route("events/{eventId:int}/attendees")]
     public class AttendeesController : Controller
     {
@@ -23,6 +26,7 @@ namespace Assignment1_EventSignup.Controllers
 
         // GET /events/{eventId}/attendees
         [HttpGet("")]
+        [AllowAnonymous]
         public async Task<IActionResult> Index(int eventId)
         {
             var ev = await _context.Events

@@ -1,9 +1,11 @@
 using Assignment1_EventSignup.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Assignment1_EventSignup.Data
 {
-    public class EventManagerContext : DbContext
+    public class EventManagerContext : IdentityDbContext<IdentityUser>
     {
         public EventManagerContext(DbContextOptions<EventManagerContext> options)
             : base(options)
