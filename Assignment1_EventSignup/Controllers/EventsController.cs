@@ -4,6 +4,9 @@ using Assignment1_EventSignup.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Assignment1_EventSignup.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Assignment1_EventSignup.Controllers
 {
@@ -12,11 +15,16 @@ namespace Assignment1_EventSignup.Controllers
     {
         private readonly EventManagerContext _context;
         private readonly IBlobStorageService _blobStorageService;
+        private readonly IHubContext<EventHub> _hubContext;
 
-        public EventsController(EventManagerContext context, IBlobStorageService blobStorageService)
+        public EventsController(
+            EventManagerContext context,
+            IBlobStorageService blobStorageService,
+            IHubContext<EventHub> hubContext)
         {
             _context = context;
             _blobStorageService = blobStorageService;
+            _hubContext = hubContext;
         }
 
         // GET /events
@@ -42,6 +50,79 @@ namespace Assignment1_EventSignup.Controllers
             return View(ev);
         }
 
+        // POST /events/{id}/register  -- authenticated user registers THEMSELVES
+        [HttpPost("{id:int}/register")]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(int id)
+        {
+            var ev = await _context.Events
+                .Include(e => e.Attendees)
+                .FirstOrDefaultAsync(e => e.Id == id);
+            if (ev == null) return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? "Unknown";
+
+            // Prevent duplicate registration by the same user
+            bool alreadyRegistered = ev.Attendees.Any(a => a.UserId == userId);
+            if (alreadyRegistered)
+            {
+                TempData["Message"] = "You are already registered for this event.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var attendee = new Attendee
+            {
+                Name = userEmail,
+                Email = userEmail,
+                EventId = id,
+                UserId = userId
+            };
+
+            _context.Attendees.Add(attendee);
+            await _context.SaveChangesAsync();
+
+            // --- SignalR broadcasts ---
+
+            // 1. Group broadcast: everyone viewing this event gets the new count + attendee name
+            int attendeeCount = await _context.Attendees.CountAsync(a => a.EventId == id);
+            await _hubContext.Clients.Group($"event-{id}")
+                .SendAsync("AttendeeRegistered", userEmail, attendeeCount);
+
+            // 2. Private notification: the Organizer who owns this event
+            if (!string.IsNullOrEmpty(ev.OrganizerUserId))
+            {
+                await _hubContext.Clients.User(ev.OrganizerUserId)
+                    .SendAsync("OrganizerNotified",
+                        $"{userEmail} just registered for your {ev.Title}.");
+            }
+
+            TempData["Message"] = "You have registered for this event.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST /events/{id}/unregister  -- authenticated user removes THEIR OWN registration
+        [HttpPost("{id:int}/unregister")]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Unregister(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var attendee = await _context.Attendees
+                .FirstOrDefaultAsync(a => a.EventId == id && a.UserId == userId);
+
+            if (attendee != null)
+            {
+                _context.Attendees.Remove(attendee);
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "You have unregistered from this event.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         // GET /events/create
         [HttpGet("create")]
         [Authorize(Roles = "Organizer")]
@@ -63,6 +144,7 @@ namespace Assignment1_EventSignup.Controllers
             {
                 ev.BannerUrl = await _blobStorageService.UploadFileAsync(bannerImage);
             }
+            ev.OrganizerUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             _context.Events.Add(ev);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));

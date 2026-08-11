@@ -24,5 +24,8 @@ namespace Assignment1_EventSignup.Models
         [ForeignKey(nameof(EventId))]
         [JsonIgnore]
         public Event? Event { get; set; }
+
+        // Id of the IdentityUser who registered. Null for Organizer-added attendees.
+        public string? UserId { get; set; }
     }
 }

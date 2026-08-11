@@ -14,6 +14,7 @@ namespace Assignment1_EventSignup
             // Add services to the container.
             builder.Services.AddControllersWithViews();
             builder.Services.AddRazorPages();   // required for scaffolded Identity UI
+            builder.Services.AddSignalR();
 
             // EF Core / Azure SQL Database
             builder.Services.AddDbContext<EventManagerContext>(options =>
@@ -65,7 +66,8 @@ namespace Assignment1_EventSignup
                 name: "default",
                 pattern: "{controller=Events}/{action=Index}/{id?}");
             app.MapRazorPages();       // maps the Identity Razor Pages
-
+            app.MapHub<Assignment1_EventSignup.Hubs.EventHub>("/eventHub");
+            app.MapGet("/", () => Results.Redirect("/events"));
             app.Run();
         }
     }

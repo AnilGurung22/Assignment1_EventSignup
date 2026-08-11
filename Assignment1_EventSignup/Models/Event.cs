@@ -25,6 +25,9 @@ namespace Assignment1_EventSignup.Models
         // URL of the banner image uploaded to Azure Blob Storage
         public string? BannerUrl { get; set; }
 
+        // Id of the Organizer (IdentityUser) who owns this event
+        public string? OrganizerUserId { get; set; }
+
         public List<Attendee> Attendees { get; set; } = new List<Attendee>();
     }
 }
